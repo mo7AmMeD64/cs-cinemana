@@ -40,8 +40,8 @@ jobs:
           mkdir -p repo/apk
           cp ShabakatyCinemana/build/ShabakatyCinemana.cs3 repo/apk/
           cat > repo/index.min.json << 'JSON'
-          [{"name":"Shabakaty Cinemana","pkg":"com.cinemana.ShabakatyCinemanaProvider","apk":"apk/ShabakatyCinemana.cs3","lang":"ar","code":1,"version":"1.0","nsfw":0,"url":"https://cinemana.shabakaty.cc","source":"https://github.com/mo7AmMeD64/cs-cinemana"}]
-          JSON
+[{"name":"Shabakaty Cinemana","pkg":"com.cinemana","apk":"apk/ShabakatyCinemana.cs3","lang":"ar","code":1,"version":"1.0","nsfw":0,"iconUrl":"https://cinemana.shabakaty.cc/img/icone.png","description":"Shabakaty Cinemana - أفلام ومسلسلات وأنمي بالعربي","authors":["mo7AmMeD64"],"repositoryUrl":"https://github.com/mo7AmMeD64/cs-cinemana","status":1,"tvTypes":["Movie","TvSeries","Anime"]}]
+JSON
 
       - name: Push to repo branch
         run: |
