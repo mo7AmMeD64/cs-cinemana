@@ -2,6 +2,7 @@ package com.cinemana
 
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.ExtractorLink
+import com.lagradost.cloudstream3.utils.ExtractorLinkType
 import com.lagradost.cloudstream3.utils.newExtractorLink
 import com.lagradost.cloudstream3.utils.getQualityFromName
 import kotlinx.serialization.json.*
@@ -28,8 +29,6 @@ class ShabakatyCinemanaProvider : MainAPI() {
         private const val SUBTITLE_DELIMITER = " - "
     }
 
-    // ─── JSON helpers ─────────────────────────────────────────────────────────
-
     private fun String.toJsonArray(): JsonArray? = try {
         if (isBlank() || this == "[]") null
         else Json.parseToJsonElement(this).jsonArray
@@ -39,8 +38,6 @@ class ShabakatyCinemanaProvider : MainAPI() {
         if (isBlank()) null
         else Json.parseToJsonElement(this).jsonObject
     } catch (e: Exception) { null }
-
-    // ─── Item parser ──────────────────────────────────────────────────────────
 
     private fun JsonObject.toSearchResponse(): SearchResponse? {
         val nb = this["nb"]?.jsonPrimitive?.content ?: return null
@@ -62,8 +59,6 @@ class ShabakatyCinemanaProvider : MainAPI() {
     private fun JsonArray.toSearchList(): List<SearchResponse> =
         mapNotNull { it.jsonObject.toSearchResponse() }
 
-    // ─── Main Page ────────────────────────────────────────────────────────────
-
     override val mainPage = mainPageOf(
         "$apiUrl/latestMovies/level/0/itemsPerPage/$LATEST_ITEMS_PER_PAGE/page/" to "أحدث الأفلام",
         "$apiUrl/latestSeries/level/0/itemsPerPage/$LATEST_ITEMS_PER_PAGE/page/" to "أحدث المسلسلات",
@@ -77,8 +72,6 @@ class ShabakatyCinemanaProvider : MainAPI() {
         val items = app.get(url).text.toJsonArray()?.toSearchList() ?: emptyList()
         return newHomePageResponse(request.name, items)
     }
-
-    // ─── Search ───────────────────────────────────────────────────────────────
 
     override suspend fun search(query: String): List<SearchResponse> {
         val trimmed = query.trim()
@@ -99,10 +92,7 @@ class ShabakatyCinemanaProvider : MainAPI() {
         return results
     }
 
-    // ─── Load ─────────────────────────────────────────────────────────────────
-
     override suspend fun load(url: String): LoadResponse? {
-        // nb من نتائج البحث مباشرة - نفس منطق أنيومي anime.url
         val nb = url.substringAfterLast("/")
 
         val info = app.get("$apiUrl/allVideoInfo/id/$nb").text.toJsonObject() ?: return null
@@ -131,12 +121,9 @@ class ShabakatyCinemanaProvider : MainAPI() {
             it.jsonObject["name"]?.jsonPrimitive?.content
         }?.map { ActorData(Actor(it)) }
 
-        // ✅ نفس منطق أنيومي: episodeListRequest يستخدم anime.url مباشرة
         val episodesRaw = app.get("$apiUrl/videoSeason/id/$nb").text.toJsonArray()
 
-        // ✅ نفس منطق أنيومي: إذا فارغ = فيلم، وإلا = مسلسل
         return if (episodesRaw.isNullOrEmpty()) {
-            // ✅ فيلم: data = nb مباشرة - نفس أنيومي episode.url = anime.url
             newMovieLoadResponse(title, nb, TvType.Movie, nb) {
                 this.posterUrl = posterUrl
                 this.plot = plot
@@ -148,11 +135,9 @@ class ShabakatyCinemanaProvider : MainAPI() {
             val seasonsMap = mutableMapOf<Int, MutableList<Episode>>()
             episodesRaw.forEach { elem ->
                 val ep = elem.jsonObject
-                // ✅ نفس أنيومي: url = nb الحلقة من videoSeason
                 val epNb = ep["nb"]?.jsonPrimitive?.content ?: return@forEach
                 val epNum = ep["episodeNummer"]?.jsonPrimitive?.content?.toIntOrNull() ?: 1
                 val sNum = ep["season"]?.jsonPrimitive?.content?.toIntOrNull() ?: 1
-                // ✅ epNb يُمرر كـ data لـ loadLinks - نفس أنيومي episode.url = nb
                 val episode = newEpisode(epNb) {
                     this.name = "الموسم $sNum - الحلقة $epNum"
                     this.season = sNum
@@ -175,19 +160,14 @@ class ShabakatyCinemanaProvider : MainAPI() {
         }
     }
 
-    // ─── Load Links ───────────────────────────────────────────────────────────
-
     override suspend fun loadLinks(
         data: String,
         isCasting: Boolean,
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit,
     ): Boolean {
-        // ✅ نفس أنيومي: episode.url = nb الحلقة من videoSeason
-        // يُستخدم مباشرة في videoListRequest و translationFiles
-        val nb = data.trim()
+        val nb = data.trim().substringAfterLast("/")
 
-        // ─── Subtitles - نفس أنيومي translationFiles/id/episode.url ──────────
         try {
             app.get("$apiUrl/translationFiles/id/$nb").text.toJsonObject()
                 ?.get("translations")?.jsonArray?.forEach { elem ->
@@ -200,7 +180,6 @@ class ShabakatyCinemanaProvider : MainAPI() {
                 }
         } catch (_: Exception) {}
 
-        // ─── Videos - نفس أنيومي transcoddedFiles/id/episode.url ────────────
         val videosJson = app.get("$apiUrl/transcoddedFiles/id/$nb").text.toJsonArray()
             ?: return false
 
@@ -208,14 +187,14 @@ class ShabakatyCinemanaProvider : MainAPI() {
             val video = elem.jsonObject
             val videoUrl = video["videoUrl"]?.jsonPrimitive?.content ?: return@forEach
             val resolution = video["resolution"]?.jsonPrimitive?.content ?: ""
-            val headers = mapOf("Referer" to mainUrl)
             callback(
                 newExtractorLink(
                     source = name,
                     name = resolution.ifBlank { "Default" },
                     url = videoUrl,
+                    type = ExtractorLinkType.VIDEO,
                 ) {
-                    this.headers = headers
+                    this.referer = mainUrl
                     this.quality = getQualityFromName(resolution)
                 }
             )
