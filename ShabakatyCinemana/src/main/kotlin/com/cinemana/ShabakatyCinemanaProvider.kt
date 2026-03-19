@@ -133,6 +133,7 @@ class ShabakatyCinemanaProvider : MainAPI() {
         val episodesRaw = app.get("$apiUrl/videoSeason/id/$nb").text.toJsonArray()
 
         return if (episodesRaw == null || episodesRaw.isEmpty()) {
+            // ─── فيلم: data = nb المسلسل/الفيلم ─────────────────────────────
             newMovieLoadResponse(title, nb, TvType.Movie, nb) {
                 this.posterUrl = posterUrl
                 this.plot = plot
@@ -144,9 +145,12 @@ class ShabakatyCinemanaProvider : MainAPI() {
             val seasonsMap = mutableMapOf<Int, MutableList<Episode>>()
             episodesRaw.forEach { elem ->
                 val ep = elem.jsonObject
+                // ✅ التعديل: epNb هو nb الحلقة وليس nb المسلسل
                 val epNb = ep["nb"]?.jsonPrimitive?.content ?: return@forEach
                 val epNum = ep["episodeNummer"]?.jsonPrimitive?.content?.toIntOrNull() ?: 1
                 val sNum = ep["season"]?.jsonPrimitive?.content?.toIntOrNull() ?: 1
+
+                // ✅ التعديل: data = epNb حتى يصل loadLinks برقم الحلقة الصحيح
                 val episode = newEpisode(epNb) {
                     this.name = "الموسم $sNum - الحلقة $epNum"
                     this.season = sNum
@@ -169,7 +173,7 @@ class ShabakatyCinemanaProvider : MainAPI() {
         }
     }
 
-    // ─── Load Links ──────────────────────────────────────────────────────────
+    // ─── Load Links ───────────────────────────────────────────────────────────
 
     override suspend fun loadLinks(
         data: String,
@@ -177,9 +181,10 @@ class ShabakatyCinemanaProvider : MainAPI() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit,
     ): Boolean {
+        // ✅ التعديل: data يحتوي على nb الحلقة مباشرة (وليس URL كامل)
         val nb = data.trim()
 
-        // Subtitles
+        // ─── Subtitles ────────────────────────────────────────────────────────
         try {
             app.get("$apiUrl/translationFiles/id/$nb").text.toJsonObject()
                 ?.get("translations")?.jsonArray?.forEach { elem ->
@@ -192,7 +197,7 @@ class ShabakatyCinemanaProvider : MainAPI() {
                 }
         } catch (_: Exception) {}
 
-        // Videos
+        // ─── Videos ───────────────────────────────────────────────────────────
         val videosJson = app.get("$apiUrl/transcoddedFiles/id/$nb").text.toJsonArray()
             ?: return false
 
