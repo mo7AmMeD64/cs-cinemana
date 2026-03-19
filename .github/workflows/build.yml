@@ -35,18 +35,30 @@ jobs:
       - name: Build extensions
         run: ./gradlew make
 
-      - name: Show manifest.json
-        run: cat ShabakatyCinemana/build/intermediates/manifest.json
-
       - name: Prepare repo folder
         run: |
+          mkdir -p repo
+          CS3_URL="https://github.com/mo7AmMeD64/cs-cinemana/raw/refs/heads/repo/apk/ShabakatyCinemana.cs3"
+          FILE_SIZE=$(wc -c < ShabakatyCinemana/build/ShabakatyCinemana.cs3)
           mkdir -p repo/apk
           cp ShabakatyCinemana/build/ShabakatyCinemana.cs3 repo/apk/
           python3 -c "
           import json
-          manifest = json.load(open('ShabakatyCinemana/build/intermediates/manifest.json'))
-          manifest['apk'] = 'apk/ShabakatyCinemana.cs3'
-          open('repo/index.min.json','w').write(json.dumps([manifest]))
+          index = [{
+            'iconUrl': 'https://cinemana.shabakaty.com/img/icone.png',
+            'apiVersion': 1,
+            'repositoryUrl': 'https://github.com/mo7AmMeD64/cs-cinemana',
+            'fileSize': $FILE_SIZE,
+            'status': 1,
+            'language': 'ar',
+            'authors': ['mo7AmMeD64'],
+            'tvTypes': ['Movie', 'TvSeries', 'Anime'],
+            'version': 1,
+            'internalName': 'ShabakatyCinemana',
+            'url': '$CS3_URL',
+            'name': 'Shabakaty Cinemana'
+          }]
+          open('repo/index.min.json','w').write(json.dumps(index, indent=2))
           "
           cat repo/index.min.json
 
