@@ -1,0 +1,22 @@
+[
+  {
+    "iconUrl": "https://cinemana.shabakaty.com/img/icone.png",
+    "apiVersion": 1,
+    "repositoryUrl": "https://github.com/mo7AmMeD64/cs-cinemana",
+    "fileSize": 19112,
+    "status": 1,
+    "language": "ar",
+    "authors": [
+      "mo7AmMeD64"
+    ],
+    "tvTypes": [
+      "Movie",
+      "TvSeries",
+      "Anime"
+    ],
+    "version": 1,
+    "internalName": "ShabakatyCinemana",
+    "url": "https://raw.githubusercontent.com/mo7AmMeD64/cs-cinemana/main/repo/ShabakatyCinemana.cs3",
+    "name": "Shabakaty Cinemana"
+  }
+]

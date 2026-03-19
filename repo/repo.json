@@ -1,0 +1,8 @@
+{
+  "name": "Shabakaty Cinemana Repo",
+  "description": "Arabic CloudStream extensions by mo7AmMeD64",
+  "manifestVersion": 1,
+  "pluginLists": [
+    "https://raw.githubusercontent.com/mo7AmMeD64/cs-cinemana/main/repo/plugins.json"
+  ]
+}
