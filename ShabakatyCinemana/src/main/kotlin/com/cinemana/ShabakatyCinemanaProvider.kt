@@ -209,15 +209,14 @@ class ShabakatyCinemanaProvider : MainAPI() {
             val videoUrl = video["videoUrl"]?.jsonPrimitive?.content ?: return@forEach
             val resolution = video["resolution"]?.jsonPrimitive?.content ?: ""
             callback(
-                newExtractorLink(
+                ExtractorLink(
                     source = name,
                     name = resolution.ifBlank { "Default" },
                     url = videoUrl,
-                ) {
-                    this.referer = mainUrl
-                    this.quality = getQualityFromName(resolution)
-                    this.isM3u8 = videoUrl.contains(".m3u8")
-                }
+                    referer = mainUrl,
+                    quality = getQualityFromName(resolution),
+                    isM3u8 = videoUrl.contains(".m3u8"),
+                )
             )
         }
 
