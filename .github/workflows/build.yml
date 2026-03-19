@@ -38,10 +38,8 @@ jobs:
       - name: Prepare repo folder
         run: |
           mkdir -p repo
-          CS3_URL="https://github.com/mo7AmMeD64/cs-cinemana/raw/refs/heads/repo/apk/ShabakatyCinemana.cs3"
+          cp ShabakatyCinemana/build/ShabakatyCinemana.cs3 repo/
           FILE_SIZE=$(wc -c < ShabakatyCinemana/build/ShabakatyCinemana.cs3)
-          mkdir -p repo/apk
-          cp ShabakatyCinemana/build/ShabakatyCinemana.cs3 repo/apk/
           python3 -c "
           import json
           index = [{
@@ -55,20 +53,16 @@ jobs:
             'tvTypes': ['Movie', 'TvSeries', 'Anime'],
             'version': 1,
             'internalName': 'ShabakatyCinemana',
-            'url': '$CS3_URL',
+            'url': 'https://raw.githubusercontent.com/mo7AmMeD64/cs-cinemana/refs/heads/main/repo/ShabakatyCinemana.cs3',
             'name': 'Shabakaty Cinemana'
           }]
           open('repo/index.min.json','w').write(json.dumps(index, indent=2))
           "
-          cat repo/index.min.json
 
-      - name: Push to repo branch
+      - name: Commit repo to main branch
         run: |
-          cd repo
-          git init
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
-          git checkout -b repo
-          git add .
-          git commit -m "Build: $(date +'%Y-%m-%d %H:%M')"
-          git push -f https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} repo
+          git add repo/
+          git commit -m "Build: $(date +'%Y-%m-%d %H:%M')" || echo "Nothing to commit"
+          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} main
