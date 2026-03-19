@@ -1,4 +1,4 @@
 # Shabakaty Cinemana - CloudStream Extension
 
 Repo URL:
-`https://raw.githubusercontent.com/mo7AmMeD64/cs-cinemana/repo/index.min.json`
+`https://raw.githubusercontent.com/mo7AmMeD64/cs-cinemana/main/repo/repo.json`
