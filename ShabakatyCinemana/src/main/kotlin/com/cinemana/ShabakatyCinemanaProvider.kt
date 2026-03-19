@@ -9,7 +9,7 @@ import java.util.Calendar
 
 class ShabakatyCinemanaProvider : MainAPI() {
 
-    override var name = "Shabakaty Cinemana"
+    override var name = "Shabakaty Cinemana(by-mohammed)"
     override var mainUrl = "https://cinemana.shabakaty.cc"
     private val apiUrl = "$mainUrl/api/android"
     override var lang = "ar"
