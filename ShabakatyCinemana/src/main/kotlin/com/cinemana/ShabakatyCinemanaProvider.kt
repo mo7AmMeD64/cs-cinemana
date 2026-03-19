@@ -176,49 +176,51 @@ class ShabakatyCinemanaProvider : MainAPI() {
     }
 
     // ─── Load Links ───────────────────────────────────────────────────────────
-override suspend fun loadLinks(
-    data: String,
-    isCasting: Boolean,
-    subtitleCallback: (SubtitleFile) -> Unit,
-    callback: (ExtractorLink) -> Unit,
-): Boolean {
-    // ✅ الإصلاح: استخراج nb سواء كان URL كامل أو nb مباشرة
-    val nb = data.trim().substringAfterLast("/")
 
-    // ─── Subtitles ────────────────────────────────────────────────────────
-    try {
-        app.get("$apiUrl/translationFiles/id/$nb").text.toJsonObject()
-            ?.get("translations")?.jsonArray?.forEach { elem ->
-                val sub = elem.jsonObject
-                val file = sub["file"]?.jsonPrimitive?.content ?: return@forEach
-                val subName = sub["name"]?.jsonPrimitive?.content
-                val ext = sub["extention"]?.jsonPrimitive?.content
-                val lang = listOfNotNull(subName, ext).joinToString(SUBTITLE_DELIMITER)
-                subtitleCallback(SubtitleFile(lang, file))
-            }
-    } catch (_: Exception) {}
+    override suspend fun loadLinks(
+        data: String,
+        isCasting: Boolean,
+        subtitleCallback: (SubtitleFile) -> Unit,
+        callback: (ExtractorLink) -> Unit,
+    ): Boolean {
+        // ✅ نفس أنيومي: episode.url = nb الحلقة من videoSeason
+        // يُستخدم مباشرة في videoListRequest و translationFiles
+        val nb = data.trim()
 
-    // ─── Videos ───────────────────────────────────────────────────────────
-    val videosJson = app.get("$apiUrl/transcoddedFiles/id/$nb").text.toJsonArray()
-        ?: return false
+        // ─── Subtitles - نفس أنيومي translationFiles/id/episode.url ──────────
+        try {
+            app.get("$apiUrl/translationFiles/id/$nb").text.toJsonObject()
+                ?.get("translations")?.jsonArray?.forEach { elem ->
+                    val sub = elem.jsonObject
+                    val file = sub["file"]?.jsonPrimitive?.content ?: return@forEach
+                    val subName = sub["name"]?.jsonPrimitive?.content
+                    val ext = sub["extention"]?.jsonPrimitive?.content
+                    val lang = listOfNotNull(subName, ext).joinToString(SUBTITLE_DELIMITER)
+                    subtitleCallback(SubtitleFile(lang, file))
+                }
+        } catch (_: Exception) {}
 
-    videosJson.forEach { elem ->
-        val video = elem.jsonObject
-        val videoUrl = video["videoUrl"]?.jsonPrimitive?.content ?: return@forEach
-        val resolution = video["resolution"]?.jsonPrimitive?.content ?: ""
-        val headers = mapOf("Referer" to mainUrl)
-        callback(
-            newExtractorLink(
-                source = name,
-                name = resolution.ifBlank { "Default" },
-                url = videoUrl,
-            ) {
-                this.headers = headers
-                this.quality = getQualityFromName(resolution)
-            }
-        )
+        // ─── Videos - نفس أنيومي transcoddedFiles/id/episode.url ────────────
+        val videosJson = app.get("$apiUrl/transcoddedFiles/id/$nb").text.toJsonArray()
+            ?: return false
+
+        videosJson.forEach { elem ->
+            val video = elem.jsonObject
+            val videoUrl = video["videoUrl"]?.jsonPrimitive?.content ?: return@forEach
+            val resolution = video["resolution"]?.jsonPrimitive?.content ?: ""
+            val headers = mapOf("Referer" to mainUrl)
+            callback(
+                newExtractorLink(
+                    source = name,
+                    name = resolution.ifBlank { "Default" },
+                    url = videoUrl,
+                ) {
+                    this.headers = headers
+                    this.quality = getQualityFromName(resolution)
+                }
+            )
+        }
+
+        return videosJson.isNotEmpty()
     }
-
-    return videosJson.isNotEmpty()
 }
-    
