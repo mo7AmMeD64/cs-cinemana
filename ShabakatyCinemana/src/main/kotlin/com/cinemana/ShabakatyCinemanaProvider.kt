@@ -102,40 +102,44 @@ class ShabakatyCinemanaProvider : MainAPI() {
     // ─── Load ─────────────────────────────────────────────────────────────────
 
     override suspend fun load(url: String): LoadResponse? {
-        // ✅ nb هنا هو nb المسلسل من نتائج البحث
-        val nb = url.substringAfterLast("/")
+    val nb = url.substringAfterLast("/")
 
-        val info = app.get("$apiUrl/allVideoInfo/id/$nb").text.toJsonObject() ?: return null
+    val info = app.get("$apiUrl/allVideoInfo/id/$nb").text.toJsonObject() ?: return null
 
-        val title = info["en_title"]?.jsonPrimitive?.content ?: return null
-        val posterUrl = info["imgObjUrl"]?.jsonPrimitive?.content
-        val year = info["year"]?.jsonPrimitive?.content?.toIntOrNull()
-        val stars = info["stars"]?.jsonPrimitive?.content?.toFloatOrNull()?.toInt() ?: 0
-        val starsText = "★".repeat(stars / 2) + "☆".repeat(5 - (stars / 2))
-        val likes = info["Likes"]?.jsonPrimitive?.content?.toIntOrNull() ?: 0
-        val dislikes = info["DisLikes"]?.jsonPrimitive?.content?.toIntOrNull() ?: 0
-        val enContent = info["en_content"]?.jsonPrimitive?.content
+    val title = info["en_title"]?.jsonPrimitive?.content ?: return null
+    val posterUrl = info["imgObjUrl"]?.jsonPrimitive?.content
+    val year = info["year"]?.jsonPrimitive?.content?.toIntOrNull()
+    val stars = info["stars"]?.jsonPrimitive?.content?.toFloatOrNull()?.toInt() ?: 0
+    val starsText = "★".repeat(stars / 2) + "☆".repeat(5 - (stars / 2))
+    val likes = info["Likes"]?.jsonPrimitive?.content?.toIntOrNull() ?: 0
+    val dislikes = info["DisLikes"]?.jsonPrimitive?.content?.toIntOrNull() ?: 0
+    val enContent = info["en_content"]?.jsonPrimitive?.content
 
-        val plot = listOfNotNull(
-            "${year ?: "N/A"} | $starsText | 👍$likes  👎$dislikes",
-            enContent
-        ).joinToString("\n\n")
+    val plot = listOfNotNull(
+        "${year ?: "N/A"} | $starsText | 👍$likes  👎$dislikes",
+        enContent
+    ).joinToString("\n\n")
 
-        val categories = info["categories"]?.jsonArray?.mapNotNull {
-            it.jsonObject["en_title"]?.jsonPrimitive?.content
-        } ?: emptyList()
-        val language = info["videoLanguages"]?.jsonObject?.get("en_title")?.jsonPrimitive?.content
-        val tags = categories + listOfNotNull(language)
+    val categories = info["categories"]?.jsonArray?.mapNotNull {
+        it.jsonObject["en_title"]?.jsonPrimitive?.content
+    } ?: emptyList()
+    val language = info["videoLanguages"]?.jsonObject?.get("en_title")?.jsonPrimitive?.content
+    val tags = categories + listOfNotNull(language)
 
-        val actorsList = info["actorsInfo"]?.jsonArray?.mapNotNull {
-            it.jsonObject["name"]?.jsonPrimitive?.content
-        }?.map { ActorData(Actor(it)) }
+    val actorsList = info["actorsInfo"]?.jsonArray?.mapNotNull {
+        it.jsonObject["name"]?.jsonPrimitive?.content
+    }?.map { ActorData(Actor(it)) }
 
-        // ✅ التعديل الرئيسي: استخدام rootSeries لجلب قائمة الحلقات
-        val rootSeries = info["rootSeries"]?.jsonPrimitive?.content ?: nb
-        val episodesRaw = app.get("$apiUrl/videoSeason/id/$rootSeries").text.toJsonArray()
+    // ✅ التعديل: rootSeries يحدد إذا كان مسلسلاً أم فيلماً
+    val rootSeries = info["rootSeries"]?.jsonPrimitive?.content
+    val kind = info["kind"]?.jsonPrimitive?.content?.toIntOrNull() ?: 1
 
-        return if (episodesRaw == null || episodesRaw.isEmpty()) {
+    // ✅ إذا kind=2 أو rootSeries موجود → مسلسل
+    return if (kind == 2 || rootSeries != null) {
+        val seriesId = rootSeries ?: nb
+        val episodesRaw = app.get("$apiUrl/videoSeason/id/$seriesId").text.toJsonArray()
+
+        if (episodesRaw == null || episodesRaw.isEmpty()) {
             newMovieLoadResponse(title, nb, TvType.Movie, nb) {
                 this.posterUrl = posterUrl
                 this.plot = plot
@@ -147,12 +151,9 @@ class ShabakatyCinemanaProvider : MainAPI() {
             val seasonsMap = mutableMapOf<Int, MutableList<Episode>>()
             episodesRaw.forEach { elem ->
                 val ep = elem.jsonObject
-                // ✅ nb هنا هو nb الحلقة الفعلي
                 val epNb = ep["nb"]?.jsonPrimitive?.content ?: return@forEach
                 val epNum = ep["episodeNummer"]?.jsonPrimitive?.content?.toIntOrNull() ?: 1
                 val sNum = ep["season"]?.jsonPrimitive?.content?.toIntOrNull() ?: 1
-
-                // ✅ epNb يُمرر لـ loadLinks كـ data
                 val episode = newEpisode(epNb) {
                     this.name = "الموسم $sNum - الحلقة $epNum"
                     this.season = sNum
@@ -173,7 +174,18 @@ class ShabakatyCinemanaProvider : MainAPI() {
                 this.actors = actorsList
             }
         }
+    } else {
+        // ✅ فيلم حقيقي: kind=1 و rootSeries غير موجود
+        newMovieLoadResponse(title, nb, TvType.Movie, nb) {
+            this.posterUrl = posterUrl
+            this.plot = plot
+            this.tags = tags
+            this.year = year
+            this.actors = actorsList
+        }
     }
+}
+                
 
     // ─── Load Links ───────────────────────────────────────────────────────────
 
