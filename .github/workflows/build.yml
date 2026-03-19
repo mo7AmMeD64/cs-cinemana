@@ -42,7 +42,9 @@ jobs:
           FILE_SIZE=$(wc -c < ShabakatyCinemana/build/ShabakatyCinemana.cs3)
           python3 -c "
           import json
-          index = [{
+
+          # plugins.json
+          plugins = [{
             'iconUrl': 'https://cinemana.shabakaty.com/img/icone.png',
             'apiVersion': 1,
             'repositoryUrl': 'https://github.com/mo7AmMeD64/cs-cinemana',
@@ -53,10 +55,19 @@ jobs:
             'tvTypes': ['Movie', 'TvSeries', 'Anime'],
             'version': 1,
             'internalName': 'ShabakatyCinemana',
-            'url': 'https://raw.githubusercontent.com/mo7AmMeD64/cs-cinemana/refs/heads/main/repo/ShabakatyCinemana.cs3',
+            'url': 'https://raw.githubusercontent.com/mo7AmMeD64/cs-cinemana/main/repo/ShabakatyCinemana.cs3',
             'name': 'Shabakaty Cinemana'
           }]
-          open('repo/index.min.json','w').write(json.dumps(index, indent=2))
+          open('repo/plugins.json','w').write(json.dumps(plugins, indent=2))
+
+          # repo.json
+          repo = {
+            'name': 'Shabakaty Cinemana Repo',
+            'description': 'Arabic CloudStream extensions by mo7AmMeD64',
+            'manifestVersion': 1,
+            'pluginLists': ['https://raw.githubusercontent.com/mo7AmMeD64/cs-cinemana/main/repo/plugins.json']
+          }
+          open('repo/repo.json','w').write(json.dumps(repo, indent=2))
           "
 
       - name: Commit repo to main branch
