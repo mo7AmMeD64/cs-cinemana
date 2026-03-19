@@ -35,14 +35,17 @@ jobs:
       - name: Build extensions
         run: ./gradlew make
 
-      - name: Show build output
-        run: find . -type f | grep -v ".git\|.gradle\|wrapper" | sort
+      - name: Prepare repo folder
+        run: |
+          mkdir -p repo/apk
+          cp ShabakatyCinemana/build/ShabakatyCinemana.cs3 repo/apk/
+          cat > repo/index.min.json << 'JSON'
+          [{"name":"Shabakaty Cinemana","pkg":"com.cinemana.ShabakatyCinemanaProvider","apk":"apk/ShabakatyCinemana.cs3","lang":"ar","code":1,"version":"1.0","nsfw":0,"url":"https://cinemana.shabakaty.cc","source":"https://github.com/mo7AmMeD64/cs-cinemana"}]
+          JSON
 
       - name: Push to repo branch
         run: |
-          REPO_DIR=$(find . -name "index.min.json" -exec dirname {} \; | head -1)
-          echo "Repo dir: $REPO_DIR"
-          cd "$REPO_DIR"
+          cd repo
           git init
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
