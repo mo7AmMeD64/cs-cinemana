@@ -33,7 +33,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build extensions
-        run: ./gradlew make
+        run: ./gradlew make --info
 
       - name: Push to repo branch
         run: |
