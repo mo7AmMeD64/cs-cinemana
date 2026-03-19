@@ -63,7 +63,6 @@ class ShabakatyCinemanaProvider : MainAPI() {
         mapNotNull { it.jsonObject.toSearchResponse() }
 
     // ─── Main Page ────────────────────────────────────────────────────────────
-    // endpoints مطابقة لـ latestUpdatesRequest + popularAnimeRequest في Aniyomi
 
     override val mainPage = mainPageOf(
         "$apiUrl/latestMovies/level/0/itemsPerPage/$LATEST_ITEMS_PER_PAGE/page/" to "أحدث الأفلام",
@@ -80,7 +79,6 @@ class ShabakatyCinemanaProvider : MainAPI() {
     }
 
     // ─── Search ───────────────────────────────────────────────────────────────
-    // مطابق لـ buildAdvancedSearchUrl + getSearchAnime في Aniyomi
 
     override suspend fun search(query: String): List<SearchResponse> {
         val trimmed = query.trim()
@@ -102,7 +100,6 @@ class ShabakatyCinemanaProvider : MainAPI() {
     }
 
     // ─── Load ─────────────────────────────────────────────────────────────────
-    // مطابق لـ animeDetailsRequest + episodeListRequest في Aniyomi
 
     override suspend fun load(url: String): LoadResponse? {
         val nb = url.substringAfterLast("/")
@@ -133,12 +130,9 @@ class ShabakatyCinemanaProvider : MainAPI() {
             it.jsonObject["name"]?.jsonPrimitive?.content
         }?.map { ActorData(Actor(it)) }
 
-        // videoSeason — إذا فارغ = فيلم، إذا فيه بيانات = مسلسل
-        // مطابق لـ getEpisodeList في Aniyomi
         val episodesRaw = app.get("$apiUrl/videoSeason/id/$nb").text.toJsonArray()
 
         return if (episodesRaw == null || episodesRaw.isEmpty()) {
-            // ─ Movie
             newMovieLoadResponse(title, nb, TvType.Movie, nb) {
                 this.posterUrl = posterUrl
                 this.plot = plot
@@ -147,7 +141,6 @@ class ShabakatyCinemanaProvider : MainAPI() {
                 this.actors = actorsList
             }
         } else {
-            // ─ Series: ترتيب مطابق لـ Aniyomi (sort by season+episode ثم reversed)
             val seasonsMap = mutableMapOf<Int, MutableList<Episode>>()
             episodesRaw.forEach { elem ->
                 val ep = elem.jsonObject
@@ -177,7 +170,6 @@ class ShabakatyCinemanaProvider : MainAPI() {
     }
 
     // ─── Load Links ──────────────────────────────────────────────────────────
-    // مطابق لـ videoListRequest + getVideoList + SubtitleDeserializer في Aniyomi
 
     override suspend fun loadLinks(
         data: String,
@@ -187,7 +179,7 @@ class ShabakatyCinemanaProvider : MainAPI() {
     ): Boolean {
         val nb = data.trim()
 
-        // Subtitles من translationFiles (مطابق لـ SubtitleDeserializer في Aniyomi)
+        // Subtitles
         try {
             app.get("$apiUrl/translationFiles/id/$nb").text.toJsonObject()
                 ?.get("translations")?.jsonArray?.forEach { elem ->
@@ -200,7 +192,7 @@ class ShabakatyCinemanaProvider : MainAPI() {
                 }
         } catch (_: Exception) {}
 
-        // Videos من transcoddedFiles (مطابق لـ VideoDeserializer في Aniyomi)
+        // Videos
         val videosJson = app.get("$apiUrl/transcoddedFiles/id/$nb").text.toJsonArray()
             ?: return false
 
@@ -208,15 +200,16 @@ class ShabakatyCinemanaProvider : MainAPI() {
             val video = elem.jsonObject
             val videoUrl = video["videoUrl"]?.jsonPrimitive?.content ?: return@forEach
             val resolution = video["resolution"]?.jsonPrimitive?.content ?: ""
+            val headers = mapOf("Referer" to mainUrl)
             callback(
                 newExtractorLink(
                     source = name,
                     name = resolution.ifBlank { "Default" },
                     url = videoUrl,
-                    referer = mainUrl,
-                    quality = getQualityFromName(resolution),
-                    isM3u8 = videoUrl.contains(".m3u8"),
-                )
+                ) {
+                    this.headers = headers
+                    this.quality = getQualityFromName(resolution)
+                }
             )
         }
 
