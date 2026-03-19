@@ -35,15 +35,20 @@ jobs:
       - name: Build extensions
         run: ./gradlew make
 
+      - name: Show manifest.json
+        run: cat ShabakatyCinemana/build/intermediates/manifest.json
+
       - name: Prepare repo folder
         run: |
           mkdir -p repo/apk
           cp ShabakatyCinemana/build/ShabakatyCinemana.cs3 repo/apk/
           python3 -c "
           import json
-          index = [{'name':'Shabakaty Cinemana','pkg':'com.lagradost','apk':'apk/ShabakatyCinemana.cs3','lang':'ar','code':1,'version':'1.0','nsfw':0,'iconUrl':'https://cinemana.shabakaty.cc/img/icone.png','description':'Shabakaty Cinemana','authors':['mo7AmMeD64'],'repositoryUrl':'https://github.com/mo7AmMeD64/cs-cinemana','status':1,'tvTypes':['Movie','TvSeries','Anime']}]
-          open('repo/index.min.json','w').write(json.dumps(index))
+          manifest = json.load(open('ShabakatyCinemana/build/intermediates/manifest.json'))
+          manifest['apk'] = 'apk/ShabakatyCinemana.cs3'
+          open('repo/index.min.json','w').write(json.dumps([manifest]))
           "
+          cat repo/index.min.json
 
       - name: Push to repo branch
         run: |
