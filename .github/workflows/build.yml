@@ -33,11 +33,16 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build extensions
-        run: ./gradlew make --info
+        run: ./gradlew make
+
+      - name: Find build output
+        run: find . -name "*.cs3" -o -name "index.min.json" 2>/dev/null | head -20
 
       - name: Push to repo branch
         run: |
-          cd build/repos
+          REPO_DIR=$(find . -name "index.min.json" -exec dirname {} \; | head -1)
+          echo "Repo dir: $REPO_DIR"
+          cd "$REPO_DIR"
           git init
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
