@@ -132,16 +132,10 @@ class ShabakatyCinemanaProvider : MainAPI() {
 
         val kind = info["kind"]?.jsonPrimitive?.content?.toIntOrNull() ?: 1
 
-        // ✅ الإصلاح الحقيقي: rootSeries="0" تعني فيلم، أي قيمة أخرى تعني مسلسل
-        val rootSeries = info["rootSeries"]?.jsonPrimitive?.content
-            ?.takeIf { it != "0" && it.isNotBlank() }
-
-        // ✅ seriesId: إذا rootSeries موجود استخدمه، وإلا استخدم nb نفسه
-        val seriesId = rootSeries ?: nb
-
         return if (kind == 2) {
-            // ─── مسلسل ───────────────────────────────────────────────────────
-            val episodesRaw = app.get("$apiUrl/videoSeason/id/$seriesId").text.toJsonArray()
+            // ✅ جلب الحلقات مباشرة بـ nb من البحث
+            // nb هو nb الحلقة الأولى وهو نفسه يعمل كـ seriesId
+            val episodesRaw = app.get("$apiUrl/videoSeason/id/$nb").text.toJsonArray()
 
             if (episodesRaw == null || episodesRaw.isEmpty()) {
                 newMovieLoadResponse(title, nb, TvType.Movie, nb) {
@@ -155,9 +149,11 @@ class ShabakatyCinemanaProvider : MainAPI() {
                 val seasonsMap = mutableMapOf<Int, MutableList<Episode>>()
                 episodesRaw.forEach { elem ->
                     val ep = elem.jsonObject
+                    // ✅ epNb = nb الحلقة الفعلي من قائمة videoSeason
                     val epNb = ep["nb"]?.jsonPrimitive?.content ?: return@forEach
                     val epNum = ep["episodeNummer"]?.jsonPrimitive?.content?.toIntOrNull() ?: 1
                     val sNum = ep["season"]?.jsonPrimitive?.content?.toIntOrNull() ?: 1
+                    // ✅ newEpisode(epNb) يمرر nb الحلقة لـ loadLinks
                     val episode = newEpisode(epNb) {
                         this.name = "الموسم $sNum - الحلقة $epNum"
                         this.season = sNum
@@ -179,7 +175,6 @@ class ShabakatyCinemanaProvider : MainAPI() {
                 }
             }
         } else {
-            // ─── فيلم: kind=1 ─────────────────────────────────────────────────
             newMovieLoadResponse(title, nb, TvType.Movie, nb) {
                 this.posterUrl = posterUrl
                 this.plot = plot
@@ -198,6 +193,7 @@ class ShabakatyCinemanaProvider : MainAPI() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit,
     ): Boolean {
+        // ✅ data = epNb الحلقة الفعلي من newEpisode(epNb)
         val nb = data.trim()
 
         // ─── Subtitles ────────────────────────────────────────────────────────
