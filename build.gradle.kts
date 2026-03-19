@@ -77,7 +77,3 @@ subprojects {
         implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.1")
     }
 }
-
-task<Delete>("clean") {
-    delete(rootProject.layout.buildDirectory)
-}
