@@ -35,8 +35,8 @@ jobs:
       - name: Build extensions
         run: ./gradlew make
 
-      - name: Find build output
-        run: find . -name "*.cs3" -o -name "index.min.json" 2>/dev/null | head -20
+      - name: Show build output
+        run: find . -type f | grep -v ".git\|.gradle\|wrapper" | sort
 
       - name: Push to repo branch
         run: |
